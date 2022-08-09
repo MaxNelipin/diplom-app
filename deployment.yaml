@@ -30,7 +30,7 @@ spec:
         app: nginxapp
     spec:
       containers:
-      - image: cr.yandex/crpis219qro17q8kksal/nginxapp:test
+      - image: $nameImage
         imagePullPolicy: IfNotPresent
         name: nginxapp
         ports:
