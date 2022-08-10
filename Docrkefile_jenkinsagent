@@ -1,0 +1,24 @@
+ARG version=4.10-6-jdk17-preview
+FROM jenkins/agent:$version
+
+ARG version
+LABEL Description="This is a base image, which allows connecting Jenkins agents via JNLP protocols" Vendor="Jenkins project" Version="$version"
+
+ARG user=jenkins
+
+USER root
+COPY ./jenkins-agent /usr/local/bin/jenkins-agent
+RUN chmod +x /usr/local/bin/jenkins-agent &&\
+    ln -s /usr/local/bin/jenkins-agent /usr/local/bin/jenkins-slave
+
+RUN   apt-get update && apt-get install gettext-base curl
+
+RUN  curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.20.11/bin/linux/amd64/kubectl && \
+     chmod +x ./kubectl && \
+     mv ./kubectl /usr/local/bin/kubectl
+
+USER ${user}
+
+ENTRYPOINT ["/usr/local/bin/jenkins-agent"]
+
+
