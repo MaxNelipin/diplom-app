@@ -1,5 +1,5 @@
 pipeline {
-    agent {label  'master'}
+    agent {label  'kubeagentcustom'}
 
     stages {
         stage('Git checkout') {
@@ -17,8 +17,10 @@ pipeline {
         }
         stage('Build,pull and deploy image') {
             steps {
+
                 script {
                 if (env.GIT_TAG == "null" ){
+                    container('docker') {
                     withCredentials([file(credentialsId: '3f382b0d-3fe4-4406-b5e1-5268b1215588', variable: 'KEY_GIT')]) {
                         sh "DOCKER_BUILDKIT=1 docker build --ssh github=${KEY_GIT} --build-arg CACHEBUST=\$(date +%s) -t cr.yandex/crpis219qro17q8kksal/nginxapp:${env.GIT_COMMIT} ."
                     }
@@ -26,9 +28,11 @@ pipeline {
                         sh "cat ${KEY_YC_REGISTRY} | docker login  --username json_key --password-stdin cr.yandex"
                         sh "docker push cr.yandex/crpis219qro17q8kksal/nginxapp:${env.GIT_COMMIT}"
                     }
+                    }
 
 
                 }else {
+                    container('docker') {
                     withCredentials([file(credentialsId: '3f382b0d-3fe4-4406-b5e1-5268b1215588', variable: 'KEY_GIT')]) {
                         sh "DOCKER_BUILDKIT=1 docker build --ssh github=${KEY_GIT} --build-arg CACHEBUST=\$(date +%s) -t cr.yandex/crpis219qro17q8kksal/nginxapp:${env.GIT_TAG} ."
                         }
@@ -36,12 +40,16 @@ pipeline {
                         sh "cat ${KEY_YC_REGISTRY} | docker login  --username json_key --password-stdin cr.yandex"
                         sh "docker push cr.yandex/crpis219qro17q8kksal/nginxapp:${env.GIT_TAG}"
                         }
-                    withKubeConfig([credentialsId: 'dilplom-test-kube-sa-token', serverUrl: 'https://62.84.118.220']) {
+                    }
+                    container('jnlp') {
+                    withKubeConfig([credentialsId: 'jenkins-admin-stage-cluster-kube', serverUrl: 'https://51.250.76.159']) {
                         env.nameImage = "cr.yandex/crpis219qro17q8kksal/nginxapp:${env.GIT_TAG}"
                         sh 'envsubst < deployment.yaml | kubectl apply -f -'
                         }
                     }
+                    }
              }
+
 
          }
     }
